@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/output.css">
+    <title><%= user.username %> - Profile</title>
+</head>
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">User Profile</h1>
+        
+        <!-- Display flash messages -->
+        <% if (success_msg) { %>
+            <div class="alert alert-success text-green-600 mb-4"><%= success_msg %></div>
+        <% } %>
+        <% if (error_msg) { %>
+            <div class="alert alert-danger text-red-600 mb-4"><%= error_msg %></div>
+        <% } %>
+
+        <!-- Profile Picture -->
+        <div class="flex items-center mb-4">
+            <% if (user.profilePicture) { %>
+                <img class="w-48 h-48 rounded-full object-cover shadow-lg" src="/<%= user.profilePicture %>" alt="Profile Picture">
+            <% } else { %>
+                <img class="w-48 h-48 rounded-full object-cover shadow-lg" src="/uploads/images/default-avatar.png" alt="Default Avatar">
+            <% } %>
+            <form class="ml-4" action="/profile/upload" method="POST" enctype="multipart/form-data">
+                <label class="block mb-2 font-bold text-sm" for="profilePicture">Upload Profile Picture</label>
+                <input class="input border p-2 mb-2" type="file" name="profilePicture" id="profilePicture" accept="image/*">
+                <button class="btn bg-blue-500 text-white p-2 rounded" type="submit">Upload</button>
+            </form>
+        </div>
+
+        <!-- Display Username and Bio -->
+        <h2 class="text-xl mb-2">Username: <%= user.username %></h2>
+        <p class="mb-4">Bio: <%= user.bio || 'No bio available.' %></p>
+
+        <!-- Form for updating bio and social links -->
+        <form action="/profile/edit" method="POST" class="form mb-4">
+            <textarea class="input w-full border p-2 mb-4" name="bio" placeholder="Update your bio..."><%= user.bio || '' %></textarea>
+
+            <h3 class="text-lg font-semibold mb-2">Social Links:</h3>
+            <div class="flex flex-col mb-4">
+                <label for="facebook" class="mb-1">Facebook:</label>
+                <input class="input border p-2 mb-2" type="url" name="facebook" id="facebook" value="<%= user.socialLinks.facebook || '' %>">
+                
+                <label for="twitter" class="mb-1">Twitter:</label>
+                <input class="input border p-2 mb-2" type="url" name="twitter" id="twitter" value="<%= user.socialLinks.twitter || '' %>">
+                
+                <label for="instagram" class="mb-1">Instagram:</label>
+                <input class="input border p-2 mb-2" type="url" name="instagram" id="instagram" value="<%= user.socialLinks.instagram || '' %>">
+                
+                <label for="linkedin" class="mb-1">LinkedIn:</label>
+                <input class="input border p-2 mb-2" type="url" name="linkedin" id="linkedin" value="<%= user.socialLinks.linkedin || '' %>">
+            </div>
+
+            <button type="submit" class="btn bg-blue-500 text-white p-2 rounded">Save Changes</button>
+        </form>
+
+        <a href="/logout" class="text-red-500">Logout</a>
+    </div>
+</body>
+</html>

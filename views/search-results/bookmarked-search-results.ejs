@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmark Search Results</title>
+    <link rel="stylesheet" href="/css/output.css">
+</head>
+<body>
+    <%- include('../partials/navbar') %>
+
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6 text-center">Search Results for "<%= query %>" in Bookmarked Posts</h1>
+
+        <!-- Check if there are any bookmarks that match the search query -->
+        <% if (bookmarks.length > 0) { %>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <% bookmarks.forEach(function(bookmark) { %>
+                    <div class="bg-white shadow-md rounded-lg p-4 transition duration-300 ease-in-out hover:shadow-lg">
+                        <a href="/blog/<%= bookmark._id %>" class="block">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-2 truncate"><%= bookmark.title %></h2>
+                            <p class="text-gray-600 mb-4 line-clamp-3"><%= bookmark.excerpt %></p>
+                            
+                            <!-- Display tags if available -->
+                            <% if (bookmark.tags.length > 0) { %>
+                                <div class="flex flex-wrap space-x-2 mb-2">
+                                    <% bookmark.tags.forEach(function(tag) { %>
+                                        <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-sm"><%= tag %></span>
+                                    <% }) %>
+                                </div>
+                            <% } %>
+                        </a>
+                        <p class="text-gray-500 text-sm mt-2">Category: <%= bookmark.category %></p>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <!-- No bookmarks found -->
+            <div class="text-center text-gray-600 mt-12">
+                <p class="text-xl">No bookmarked posts found matching "<%= query %>".</p>
+            </div>
+        <% } %>
+    </div>
+
+    <%- include('../partials/footer') %>
+
+</body>
+</html>

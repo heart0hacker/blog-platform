@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Notifications</title>
+    <link rel="stylesheet" href="css/output.css">
+</head>
+<body class="bg-gradient-to-r from-indigo-50 to-blue-50 text-gray-900">
+    
+    <%- include('partials/navbar') %>
+    
+    <div class="container mx-auto py-10">
+        <h1 class="text-3xl font-bold mb-6 text-center">Your Notifications</h1>
+
+        <h2 class="text-xl font-semibold mb-4">Unread Notifications</h2>
+        <% if ( notifications.some(notification=> !notification.isRead) ) { %>
+            <form action="/notifications/mark-all-read" method="POST" class="mb-4">
+                <button type="submit" class="text-sm text-blue-500 hover:underline">Mark all as read</button>
+            </form>
+            
+            <ul class="space-y-4">
+                <% notifications.filter(notification => !notification.isRead).forEach(notification => { %>
+                    <li class="p-4 bg-blue-100 rounded-lg shadow-md flex justify-between items-center">
+                        <div>
+                            <strong class="text-blue-600"><%= notification.fromUser.username %></strong>
+                            <% if (notification.type === 'like') { %>
+                            liked your post: <a href="/blog/<%= notification.post._id %>" class="font-semibold text-blue-500 hover:underline"><%= notification.post.title %></a>
+                        <% } else if (notification.type === 'comment') { %>
+                            commented on your post: <a href="/blog/<%= notification.post._id %>" class="font-semibold text-blue-500 hover:underline"><%= notification.post.title %></a>
+                            <% } else if (notification.type === 'follow') { %>
+                            followed you!
+                        <% } %>
+                    </div>
+                    <form action="/notifications/mark-read/<%= notification._id %>" method="POST" class="ml-4">
+                        <button type="submit" class="text-sm text-blue-500 hover:underline">Mark as read</button>
+                    </form>
+                </li>
+                <% }) %>
+            </ul>
+            <% } else { %>
+                <div class="mt-4 flex justify-center items-center">
+                    <p class="text-xl text-gray-600 bg-white p-4 rounded-lg shadow-md animate-pulse">
+                        You have no new notification.
+                    </p>
+                </div>
+            <% } %>
+
+        <h2 class="text-xl font-semibold mt-8 mb-4">Read Notifications</h2>
+        <ul class="space-y-4">
+            <% notifications.filter(notification => notification.isRead).forEach(notification => { %>
+                <li class="p-4 bg-gray-200 rounded-lg shadow-md flex justify-between items-center">
+                    <div>
+                        <strong class="text-gray-600"><%= notification.fromUser.username %></strong>
+                        <% if (notification.type === 'like') { %>
+                            liked your post: <a href="/blog/<%= notification.post._id %>" class="font-semibold text-gray-800"><%= notification.post.title %></a>
+                        <% } else if (notification.type === 'comment') { %>
+                            commented on your post: <a href="/blog/<%= notification.post._id %>" class="font-semibold text-gray-800"><%= notification.post.title %></a>
+                        <% } else if (notification.type === 'follow') { %>
+                            followed you!
+                        <% } %>
+                    </div>
+                </li>
+            <% }) %>
+        </ul>
+    </div>
+
+    <script>
+        // Optional: Add JavaScript to handle notifications dynamically
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                const notificationItem = this.parentElement; // Get the notification item
+                const notificationId = this.action.split('/').pop(); // Get the notification ID
+
+                fetch(`/notifications/mark-read/${notificationId}`, {
+                    method: 'POST',
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Change background to gray and hide the button
+                        notificationItem.classList.replace('bg-blue-100', 'bg-gray-200');
+                        this.querySelector('button').style.display = 'none'; // Hide the button
+                    } else {
+                        alert('Failed to mark notification as read.'); // Show an error message if failed
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+
+        ////////READ ALL:
+        document.querySelector('form[action="/notifications/mark-all-read"]').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent the default form submission
+
+    fetch('/notifications/mark-all-read', {
+        method: 'POST',
+    })
+    .then(response => {
+        if (response.ok) {
+            // Hide unread notifications
+            document.querySelectorAll('.bg-blue-100').forEach(item => {
+                item.classList.replace('bg-blue-100', 'bg-gray-200');
+                item.querySelector('form').style.display = 'none'; // Hide the buttons
+            });
+        } else {
+            alert('Failed to mark all notifications as read.'); // Handle failure
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+    </script>
+</body>
+</html>

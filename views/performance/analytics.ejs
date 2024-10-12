@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= user ? user.username : 'Analytics' %> Analytics</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gradient-to-r from-blue-200 to-indigo-300 text-gray-800">
+    <%- include('../partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <h1 class="text-4xl font-extrabold text-center mb-10 text-gray-800 shadow-md">Analytics for <%= user.username %></h1>
+        
+        <div class="blogContainer analytics-summary mb-10 bg-white shadow-lg rounded-lg p-5">
+            <h2 class="text-3xl font-bold text-blue-600 mb-5">Post Analytics:</h2>
+            <ul class="space-y-2">
+                <li class="text-lg"><strong>Total Posts:</strong> <span class="text-gray-600"><%= analytics.totalPosts %></span></li>
+                <li class="text-lg"><strong>Total Views:</strong> <span class="text-gray-600"><%= analytics.totalViews %></span></li>
+                <li class="text-lg"><strong>Total Likes:</strong> <span class="text-gray-600"><%= analytics.totalLikes %></span></li>
+                <li class="text-lg"><strong>Total Comments:</strong> <span class="text-gray-600"><%= analytics.totalComments %></span></li>
+                <li class="text-lg"><strong>Total Shares:</strong> <span class="text-gray-600"><%= analytics.totalShares %></span></li>
+            </ul>
+        </div>
+
+        <!-- Metric Selector -->
+        <div class="mb-5 flex justify-center space-x-4">
+            <label class="cursor-pointer">
+                <input type="radio" name="metric" value="views" checked onclick="updateChart()" class="hidden peer">
+                <span class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg peer-checked:bg-blue-600">Views</span>
+            </label>
+            <label class="cursor-pointer">
+                <input type="radio" name="metric" value="likes" onclick="updateChart()" class="hidden peer">
+                <span class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg peer-checked:bg-blue-600">Likes</span>
+            </label>
+            <label class="cursor-pointer">
+                <input type="radio" name="metric" value="comments" onclick="updateChart()" class="hidden peer">
+                <span class="inline-block bg-blue-500 text-white px-4 py-2 rounded-lg peer-checked:bg-blue-600">Comments</span>
+            </label>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="blogContainer analytics-graph bg-white shadow-lg rounded-lg p-5 mb-10 max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold text-blue-600 mb-4">Analytics Over Time</h2>
+            <div class="relative h-96"> <!-- Chart container with height and responsive behavior -->
+                <canvas id="analyticsChart" class="w-full h-full"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function decodeHTMLEntities(text) {
+            var textArea = document.createElement('textarea');
+            textArea.innerHTML = text;
+
+            if (document.body.classList.contains('darktheme')) {
+        textArea.style.backgroundColor = 'white'; // Set background color to white
+        textArea.style.color = 'black'; // Set text color to black for contrast
+        textArea.style.border = '1px solid #ccc'; // Add a soft border
+    } else {
+        textArea.style.backgroundColor = 'black'; // Set background color for light mode (optional)
+        textArea.style.color = 'white'; // Set text color for light mode (optional)
+    }
+            return textArea.value;
+        }
+
+        const labels = JSON.parse(decodeHTMLEntities('<%= labels || [] %>'));
+        const viewsData = JSON.parse(decodeHTMLEntities('<%= viewsData || [] %>'));
+        const likesData = JSON.parse(decodeHTMLEntities('<%= likesData || [] %>'));
+        const commentsData = JSON.parse(decodeHTMLEntities('<%= commentsData || [] %>'));
+
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+
+        // Initial chart setup with views data
+        let currentMetric = 'views'; // Default metric
+        const analyticsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Views',
+                    data: viewsData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.3)', // Lighter background for heavenly feel
+                    borderWidth: 2,
+                    fill: true,
+                    pointRadius: 4, // Enhancing points for clarity
+                    pointHoverRadius: 6, // Larger points on hover for better interaction
+                    tension: 0.4, // Adding curve to lines for smooth visuals
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Ensuring the chart fills the container
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.3)' // Soft grid color
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(200, 200, 200, 0.3)' // Soft grid color
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 14 // Adjust label font size
+                            },
+                            color: '#333' // Darker color for contrast
+                        }
+                    }
+                }
+            }
+        });
+
+        // Function to update the chart based on selected metric
+        function updateChart() {
+            const metric = document.querySelector('input[name="metric"]:checked').value;
+
+            let data, label;
+
+            if (metric === 'views') {
+                data = viewsData;
+                label = 'Views';
+                currentMetric = 'views';
+            } else if (metric === 'likes') {
+                data = likesData;
+                label = 'Likes';
+                currentMetric = 'likes';
+            } else {
+                data = commentsData;
+                label = 'Comments';
+                currentMetric = 'comments';
+            }
+
+            // Update the chart with new data
+            analyticsChart.data.datasets[0].data = data;
+            analyticsChart.data.datasets[0].label = label;
+            analyticsChart.update();
+        }
+
+    </script>       
+
+    <%- include('../partials/footer') %>
+</body>
+</html>

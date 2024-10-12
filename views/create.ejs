@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Post</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <h1 class="text-4xl font-bold text-center mb-8 text-blue-600">Create New Post</h1>
+        
+        <form action="/blog/create" method="POST" enctype="multipart/form-data" class="form bg-white shadow-lg rounded-lg p-8 space-y-6">
+            <div class="mb-6">
+                <label for="title" class="block text-lg font-semibold mb-2 text-gray-700">Title:</label>
+                <input type="text" name="title" id="title" class="input w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200" required>
+            </div>
+
+            <div class="mb-6">
+                <label for="content" class="block text-lg font-semibold mb-2 text-gray-700">Content:</label>
+                <textarea name="content" id="content" rows="6" class="input w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200" required></textarea>
+            </div>
+
+            <div class="mb-6">
+                <label for="media" class="block text-lg font-semibold mb-2 text-gray-700">Upload Media:</label>
+                <input type="file" name="media" id="media" class="input w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+            </div>
+
+            <div class="mb-6">
+                <label for="tags" class="block text-lg font-semibold mb-2 text-gray-700">Tags (comma-separated):</label>
+                <input type="text" name="tags" id="tags" placeholder="e.g., travel, food, technology" class="input w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+            </div>
+
+            <div class="mb-6">
+                <label for="category" class="block text-lg font-semibold mb-2 text-gray-700">Category</label>
+                <select name="category" id="category" required class="input w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition duration-300">
+                    <option value="" disabled selected>Select a category</option>
+                    <option value="comedy">Comedy</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="technology">Technology</option>
+                    <option value="health">Health & Fitness</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="travel">Travel</option>
+                    <option value="food">Food & Cooking</option>
+                    <option value="education">Education</option>
+                    <option value="finance">Finance</option>
+                    <option value="fashion">Fashion & Beauty</option>
+                    <option value="sports">Sports</option>
+                    <option value="news">News & Politics</option>
+                    <option value="music">Music</option>
+                    <option value="movies">Movies & TV Shows</option>
+                    <option value="art">Art & Culture</option>
+                    <option value="science">Science & Nature</option>
+                    <option value="gaming">Gaming</option>
+                </select>
+            </div>
+
+            <div class="flex justify-center">
+                <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-600 transition duration-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create Post
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

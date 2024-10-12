@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Blog Platform</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <style>
+        /* Custom styles with Tailwind utilities */
+        body {
+            background: linear-gradient(to right, #eef2ff, #c7d2fe);
+        }
+
+        .dark-theme {
+            background-color: black;
+        }
+
+        .blogContainer {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .featured-posts {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #e0e7ff;
+            transition: background 0.5s ease;
+            display: none; /* Initially hidden */
+        }
+
+        .dark-theme .featured-posts {
+            background: rgba(56, 56, 56, 0.9);
+            border: 2px solid #e0e7ff;
+            transition: background 0.5s ease;
+        }
+
+        .dark-theme .label {
+            color: white;
+        }
+
+        .featured-posts:hover {
+            background: linear-gradient(to right, #e0e7ff, #f3f4f6);
+        }
+
+        .dark-theme .featured-posts:hover {
+            background: linear-gradient(to right, #3e4048, #424345);
+        }
+
+        .featured-posts-post {
+            transition: transform 0.3s;
+        }
+
+        .featured-posts-post:hover {
+            transform: scale(1.05);
+        }
+
+        .post {
+            transition: transform 0.3s;
+        }
+
+        .post:hover {
+            transform: scale(1.05);
+        }
+
+        .post h2 {
+            transition: color 0.3s, text-decoration 0.3s;
+        }
+
+        .post:hover h2 {
+            color: #6366f1;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-r from-indigo-100 to-blue-200 text-gray-900">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <!-- Main Heading with gradient and shadow -->
+        <h1 class="text-7xl font-extrabold text-center mb-5 pb-5 bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-blue-400 drop-shadow-xl animate-pulse">
+            🌟 All Blog Posts 🌟
+        </h1>
+
+        <!-- Featured Posts Section -->
+<div class="featured-posts rounded-xl shadow-lg p-5 transition-transform duration-300 hover:shadow-xl">
+    <h2 class="text-4xl font-extrabold mb-4 text-center text-indigo-600 drop-shadow-lg">✨ Featured Posts ✨</h2>
+
+    <!-- Dropdown for sorting -->
+    <div class="flex justify-center items-center mb-4">
+        <label for="sort-options" class="label text-lg font-semibold text-gray-700 mr-4">Sort by:</label>
+        <select onchange="sortPosts()" id="sort-options" class="sort-dropdown bg-gray-100 border rounded-md shadow-md px-3 py-2 text-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <% const currentSort = query.sort || 'likes'; %>
+            <option value="likes" <%= currentSort === 'likes' ? 'selected' : '' %>>Sort by Likes</option>
+            <option value="views" <%= currentSort === 'views' ? 'selected' : '' %>>Sort by Views</option>
+            <option value="new" <%= currentSort === 'new' ? 'selected' : '' %>>Sort by New</option>
+        </select>
+    </div>
+
+    <script>
+        function sortPosts() {
+            const sortOption = document.getElementById('sort-options').value;
+            window.location.href = `/?sort=${sortOption}`;  // Redirect to the URL with the chosen sort parameter
+        }
+    </script>
+
+    <div id="featured-posts-list">
+        <% if (featuredPosts.length > 0) { %>  <!-- Check if there are any featured posts -->
+            <ul>
+                <% featuredPosts.forEach(post => { %>
+                    <li class="mb-4 transition-transform duration-300 hover:scale-105">
+                        <a href="/blog/<%= post._id %>" class="featured-posts-post block p-4 bg-white rounded-lg shadow-md hover:shadow-xl transition duration-300">
+                            <h3 class="text-lg font-semibold text-gray-900 hover:text-indigo-500 transition-colors duration-300">
+                                <%= post.title %>
+                                <span class="text-sm text-gray-500 ml-2">by <%= post.author ? post.author.username : 'Unknown' %></span>
+                            </h3>
+                            <p class="text-gray-700">
+                                <%= post.content.substring(0, 100) %>...
+                            </p>
+                        </a>
+                    </li>
+                <% }) %>
+            </ul>
+        <% } else { %>
+            <p class="text-center text-gray-500">No featured posts available at this time.</p>
+        <% } %>
+    </div>
+</div>
+
+
+        <!-- Blog Grid -->
+        <% if (posts.length > 0) { %>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-6">
+                <% posts.forEach(post => { %>
+                    <a href="/blog/<%= post._id %>" class="group block relative transition-transform duration-300 transform hover:scale-105">
+                        <div class="post p-8 bg-white border border-gray-200 rounded-lg shadow-lg hover:bg-gradient-to-r from-indigo-50 to-blue-50 transition-all duration-300">
+                            <h2 class="text-2xl font-semibold text-gray-900 group-hover:text-indigo-500 transition-colors duration-300 group-hover:underline">
+                                <%= post.title %>
+                                <span class="text-sm text-gray-500 ml-2">by <%= post.author ? post.author.username : 'Unknown' %></span>
+                            </h2>
+                            <p class="text-gray-700 mb-4 group-hover:text-gray-900 transition-colors duration-300">
+                                <%= post.content.substring(0, 35) %>...
+                            </p>
+
+                            <!-- Media Display -->
+                            <% if (post.media) { %>
+                                <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                                    <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 group-hover:scale-105" loading="lazy">
+                                <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                                    <video class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 group-hover:scale-105" controls preload="metadata">
+                                        <source src="/uploads/<%= post.media %>" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                <% } else { %>
+                                    <p class="text-red-500 mb-2">Unsupported media format</p>
+                                <% } %>
+                            <% } %>
+                        </div>
+                    </a>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="mt-4 flex justify-center items-center">
+                <p class="text-xl text-gray-600 bg-white p-4 rounded-lg shadow-md animate-pulse">None of the users have posted anything yet.</p>
+            </div>
+        <% } %>
+        
+        <div class="paginationS bg-white shadow-lg p-6 rounded-lg mx-auto mt-4">
+            <div class="pagination flex justify-center items-center space-x-4 mt-6">
+                <% if (currentPage > 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 ease-in-out flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m0 0l6 6m-6-6l6-6" /></svg>
+                        Previous
+                    </a>
+                <% } %>
+    
+                <span class="label font-semibold text-lg text-gray-800">Page <%= currentPage %> of <%= totalPages %></span>
+    
+                <% if (currentPage < totalPages) { %>
+                <a href="?page=<%= currentPage + 1 %>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 ease-in-out flex items-center">
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h12m0 0l-6 6m6-6l-6-6" /></svg>
+                </a>
+            <% } %>
+        </div>
+    </div>  
+    </div>
+
+    <%- include('partials/footer') %>
+</body>
+
+</html>

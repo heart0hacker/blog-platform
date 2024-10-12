@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - <%= errorCode %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            background-color: #f9fafb;
+        }
+        .error-code {
+            font-size: 6rem;
+            font-weight: bold;
+            color: #f43f5e; /* Tailwind color for error */
+        }
+        .error-message {
+            font-size: 1.5rem;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <i class="fas fa-exclamation-triangle fa-5x text-red-600"></i>
+        <div class="error-code"><%= errorCode %></div>
+        <div class="error-message">
+            <%= errorMessage || "Something went wrong. Please try again later." %>
+        </div>
+        <a href="/" class="mt-4 text-blue-500 hover:underline">Return to Home</a>
+    </div>
+</body>
+</html>

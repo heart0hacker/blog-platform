@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= post.title %> - Blog</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-8 px-4 bg-white shadow-lg rounded-lg mt-6">
+        <div class="flex items-center justify-between">
+            <h1 class="min-h-14 text-5xl font-bold text-gray-800 hover:text-blue-600 transition duration-300">
+                <%= post.title %>
+            </h1>
+            <a href="/profile/<%= post.author._id %>" class="text-blue-600 text-lg italic hover:underline">By <%= post.author ? post.author.username : 'Unknown Author' %></a>
+        </div>
+            
+        <p class="text-lg text-gray-700 mb-4 mt-2"><%= post.content %></p>
+        
+        <!-- Media display handling -->
+<% if (post.media) { %>
+    <div class="mb-4">
+        <% if (['.png', '.jpg', '.jpeg', '.gif'].some(ext => post.media.endsWith(ext))) { %>
+            <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-96 object-cover rounded-lg shadow cursor-pointer" id="imagePreview" onclick="openImageModal(this.src)">
+        <% } else if (['.mp4', '.avi'].some(ext => post.media.endsWith(ext))) { %>
+            <video class="w-full h-96 object-cover rounded-lg shadow" controls controlslist="nodownload">
+                <source src="/uploads/<%= post.media %>" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        <% } else { %>
+            <p class="text-red-500">Unsupported media format</p>
+        <% } %>
+    </div>
+<% } %>
+
+<!-- Full-Screen Image Modal -->
+<div id="imageModal" class="fixed inset-0 hidden bg-black bg-opacity-80 items-center justify-center z-50 transition-all duration-300">
+    <span class="absolute top-4 right-4 text-white text-3xl cursor-pointer" onclick="closeImageModal()">&times;</span>
+    <img id="fullImage" class="max-w-full max-h-full" src="" alt="Full Image" onclick="closeImageModal()">
+</div>
+
+<script>
+    function openImageModal(src) {
+        document.getElementById('fullImage').src = src;
+        document.getElementById('imageModal').classList.remove('hidden');
+        document.getElementById('imageModal').classList.add('flex');
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').classList.add('hidden');
+        document.getElementById('imageModal').classList.remove('flex');
+    }
+</script>
+
+        <!--  Like: -->
+        <div class="flex items-center mb-4">
+            <% if (user) { %>
+                <button id="likeBtn"
+                    class="flex items-center <%= post.likedBy && post.likedBy.includes(user._id) ? 'bg-red-500 hover:bg-red-700' : 'bg-green-500 hover:bg-green-700' %> text-white font-semibold py-2 px-4 rounded transition duration-300"
+                    data-liked="<%= post.likedBy && post.likedBy.includes(user._id) %>" data-postid="<%= post._id %>">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                    <span class="ml-2"><%= post.likedBy && post.likedBy.includes(user._id) ? 'Liked' : 'Like' %></span>
+                </button>
+            <% } else { %>
+                <p class="text-red-500">You need to <a href="/login" class="underline text-blue-500">login</a> to like this post.</p>
+            <% } %>
+            <span class="ml-4 text-gray-600 font-semibold" id="likeCount">Likes: <%= post.likes %></span>
+            <p class="ml-4 text-gray-600 font-semibold">Views: <%= post.views %></p>
+        </div>
+
+        <!-- Bookmark Button -->
+        <% if (user) { %>
+            <button class="text-sm px-4 py-2 mb-4 
+                <% if (user.bookmarks.includes(post._id.toString())) { %>
+                    bg-red-500 hover:bg-red-600
+                <% } else { %>
+                    bg-blue-500 hover:bg-blue-600
+                <% } %>
+                text-white rounded-full transition duration-300 bookmark-button" 
+                data-id="<%= post._id %>">
+                <% if (user.bookmarks.includes(post._id.toString())) { %>
+                    Unbookmark 
+                <% } else { %> 
+                    Bookmark 
+                <% } %>
+            </button>
+        <% } %>
+
+        <p class="text-gray-600"><strong>Category:</strong> <%= post.category %></p>
+        <p class="text-gray-600"><strong>Tags:</strong> <%= post.tags.join(', ') %></p>
+
+        <!-- Shareable URL Section -->
+        <div class="my-6 p-4 bg-gray-100 rounded-md form">
+            <label for="share-url" class="block text-lg font-semibold">Share this post:</label>
+            <div class="flex items-center">
+                <input type="text" id="share-url" value="<%= shareableUrl %>" readonly class="input flex-grow border border-gray-300 rounded-md p-2 mr-2" />
+                <button onclick="copyToClipboard('<%= shareableUrl %>')" class="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 transition">Copy Link</button>
+            </div>
+            <div class="mt-4">
+                <span class="font-semibold">Or share on:</span>
+                <div class="flex space-x-4 mt-2">
+                    <button onclick="window.open(`https://www.facebook.com/sharer/sharer.php?u=<%= encodeURIComponent(shareableUrl) %>`, '_blank')" class="bg-blue-600 text-white rounded-md px-4 py-2 hover:bg-blue-700 transition">Facebook</button>
+                    <button onclick="window.open(`https://twitter.com/intent/tweet?url=<%= encodeURIComponent(shareableUrl) %>&text=<%= encodeURIComponent(post.title) %>`, '_blank')" class="bg-blue-400 text-white rounded-md px-4 py-2 hover:bg-blue-500 transition">Twitter</button>
+                    <button onclick="window.open(`https://www.linkedin.com/shareArticle?mini=true&url=<%= encodeURIComponent(shareableUrl) %>&title=<%= encodeURIComponent(post.title) %>`, '_blank')" class="bg-blue-700 text-white rounded-md px-4 py-2 hover:bg-blue-800 transition">LinkedIn</button>
+                </div>
+            </div>
+        </div>
+
+
+<script>
+    function copyToClipboard(url) {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        alert('Link copied to clipboard!');
+    }
+</script>  
+<div class="post-comments mt-6 ml-5">
+    <h3 class="text-2xl mb-4 text-gray-800 font-semibold">Comments</h3>
+
+    <% if (Array.isArray(post.comments) && post.comments.length > 0) { %>
+        <% post.comments.forEach(comment => { %>
+            <div class="border-b py-2 mb-2">
+                <p><strong><%= comment.author.username %></strong> said:</p>
+                <p class="text-gray-700"><%= comment.text %></p>
+                <p class="text-gray-500 text-sm"><%= new Date(comment.createdAt).toLocaleString() %></p>
+
+                <% if (user) { %>
+                    <button class="reply-button text-blue-500 mt-2" data-commentid="<%= comment._id %>">Reply</button>
+                <% } %>
+
+                <!-- Reply Form -->
+                <div class="reply-form hidden mt-2">
+                    <form action="/blog/<%= post._id %>/comment/<%= comment._id %>/reply" method="POST">
+                        <textarea name="text" rows="2" class="input border p-2 w-full mb-4 rounded-md" placeholder="Write your reply..." required></textarea>
+                        <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded">Post Reply</button>
+                    </form>
+                </div>
+
+                <% if (user && user._id.toString() === comment.author._id.toString()) { %>
+                    <div class="mt-2">
+                        <form action="/blog/<%= post._id %>/comment/<%= comment._id %>?_method=DELETE" method="POST" class="inline-block">
+                            <button type="submit" class="text-red-500 hover:underline">Delete</button>
+                        </form>
+                        <a href="/blog/<%= post._id %>/comment/<%= comment._id %>/edit" class="text-blue-500 hover:underline ml-2">Edit</a>
+                    </div>
+                <% } %>
+
+             <!-- Loop through replies and display them -->
+<% if (comment.replies && comment.replies.length > 0) { %>
+    <div class="replies ml-8 mt-4">
+        <% comment.replies.forEach(reply => { %>
+            <div class="reply border-l pl-4 mb-4">
+                <p> <strong>
+                    <%= reply.author && reply.author.username ? reply.author.username : 'Anonymous' %> replied:
+                </strong> replied:</p>
+                <p class="text-gray-600"><%= reply.text %></p>
+                <p class="text-gray-500 text-sm"><%= new Date(reply.createdAt).toLocaleString() %></p>
+            </div>
+        <% }) %>
+    </div>
+<% } else { %>
+    <p class="text-gray-600">No replies yet.</p>
+<% } %>
+
+            </div>
+        <% }) %>
+    <% } else { %>
+        <p class="text-gray-600">No comments yet. Be the first to comment!</p>
+    <% } %>
+</div>
+
+
+            <% if (user) { %>
+                <form action="/blog/<%= post._id %>/comment" method="POST" class="mt-4">
+                    <textarea name="text" id="text" rows="4" 
+                        class="input border p-2 w-full mb-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Write your comment here..." required></textarea>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Post Comment</button>
+                </form>
+            <% } else { %>
+                <p class="text-red-500">You need to <a href="/login" class="underline text-blue-500">login</a> to comment on this post.</p>
+            <% } %>
+        </div>
+    </div>
+
+        <script>
+            //  Like:
+            document.getElementById('likeBtn').addEventListener('click', async function (e) {
+                e.preventDefault();
+
+                console.log('Button clicked!'); // Added to check if event listener is triggered
+
+                const button = e.currentTarget;
+                const postId = button.getAttribute('data-postid');
+                const isLiked = button.getAttribute('data-liked') === 'true';
+
+                const url = `/blog/${postId}/${isLiked ? 'unlike' : 'like'}`;
+                console.log('Sending request to:', url);  // Check if URL is correct
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('Request successful'); // Check if request was successful
+                    const result = await response.json();
+                    console.log('Result:', result);  // Log the result from the server
+
+                    // Update button and like count
+                    button.setAttribute('data-liked', isLiked ? 'false' : 'true');
+                    button.classList.toggle('bg-green-500', !isLiked);
+                    button.classList.toggle('bg-red-500', isLiked);
+                    button.querySelector('span').textContent = isLiked ? 'Like' : 'Liked';
+                    document.getElementById('likeCount').textContent = `Likes: ${result.likes}`;
+                } else {
+                    console.error('Request failed:', response); // Log failed response
+                }
+            });
+
+           // Toggle Reply Form
+document.querySelectorAll('.reply-button').forEach(button => {
+    button.addEventListener('click', function() {
+        const replyForm = this.nextElementSibling;
+        replyForm.classList.toggle('hidden');
+    });
+});
+
+
+// Handle reply form submission
+const replyForms = document.querySelectorAll('.reply-form form');
+replyForms.forEach(form => {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent default form submission
+
+        const text = form.querySelector('textarea[name="text"]').value.trim();
+
+        console.log('Reply text:', text); // Debugging log
+
+        if (!text) {
+            console.error("Reply text is required."); // Log error if text is empty
+            return; // Prevent submission if text is empty
+        }
+
+        // Proceed with fetch if text is valid
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: JSON.stringify({ text }), // Send as JSON
+                headers: {
+                    'Content-Type': 'application/json', // Set the correct header
+                    'X-Requested-With': 'XMLHttpRequest' // To identify AJAX requests
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error posting reply:', errorText); // Log error response
+            } else {
+                const result = await response.json(); // Parse JSON response
+                console.log('Reply posted successfully:', result);
+                // Code to update the UI here...
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+});
+        </script>
+</body>
+
+</html>

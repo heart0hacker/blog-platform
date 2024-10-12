@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Comment</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Edit Comment</h1>
+        <div class="edit-comment-formContainer bg-white shadow-lg rounded-lg p-6 max-w-lg mx-auto">
+            <form action="/blog/<%= post._id %>/comment/<%= comment._id %>?_method=PUT" method="POST">
+                <div class="mb-6">
+                    <label for="text" class="block text-lg font-semibold mb-2">Comment:</label>
+                    <textarea name="text" id="text" rows="5" class="input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition duration-200" required><%= comment.text %></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-600 transition duration-200">
+                    Update Comment
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

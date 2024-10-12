@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= user ? user.username : 'Dashboard' %> Dashboard</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gradient-to-r from-indigo-50 to-blue-50 text-gray-900">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <!-- Dashboard Title -->
+        <h1 class="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-600 drop-shadow-lg">
+            Welcome to Your Dashboard, <%= user.username %>!
+        </h1>
+
+        <!-- Create New Post Button with SVG and shadow effect -->
+        <div class="text-center mb-10">
+            <a href="/blog/create" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-y-105 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create New Post
+            </a>
+        </div>
+
+        <!-- Analytics Button -->
+        <div class="text-center mb-10">
+            <a href="/analytics" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-y-105 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v18H3V3z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v18m8-18v18" />
+                </svg>
+                View Analytics
+            </a>
+        </div>
+
+        <!-- Your Blogs Section -->
+        <div class="blogContainer mx-2 min-h-[90vh] pb-14">
+            <h2 class="text-2xl font-bold mb-6 text-center">Your Blogs:</h2>
+            <% if (user && posts.length > 0) { %>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <% posts.forEach(post => { %>
+                        <% if (post.author._id.toString() === user._id.toString()) { %> <!-- Only show author's posts -->
+                            <div class="post mx-4 group bg-white border border-gray-200 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                                <!-- Make the entire blog clickable -->
+                                <a href="/blog/<%= post._id %>" class="block mb-6">
+                                    <!-- Blog Content -->
+                                    <div class="flex justify-between items-center">
+                                        <h2 class="text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors duration-300"><%= post.title %></h2>
+                                        <p class="text-sm text-gray-500 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.1 0 2 .9 2 2s-.9 2-2-2-.9-2 2-2zm0 14c-2.33 0-4.31-1.46-5.12-3.5.03-.02.1-.03.16-.03H8.5c.22 0 .43.1.56.27.5.65 1.24 1.23 2.19 1.23.94 0 1.7-.58 2.19-1.23.13-.17.34-.27.56-.27h1.46c.06 0 .12.01.16.03C16.31 17.54 14.33 19 12 19z"/>
+                                            </svg>
+                                            <%= post.author.username %>
+                                        </p>
+                                    </div>
+
+                                    <p class="dashboard-content text-gray-700 mb-4 group-hover:text-gray-900 transition-colors duration-300">
+                                        <%= post.content.substring(0, 100) %>...
+                                    </p>
+
+                                    <!-- Media Display -->
+                                    <% if (post.media) { %>
+                                        <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                                            <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110">
+                                        <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                                            <video class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110" controls preload="metadata">
+                                                <source src="/uploads/<%= post.media %>" type="video/mp4">
+                                            </video>
+                                        <% } else { %>
+                                            <p class="text-red-500 mb-2">Unsupported media format</p>
+                                        <% } %>
+                                    <% } %>
+                                </a>
+
+                                <!-- Edit and Delete buttons -->
+                                <div class="mt-6 flex justify-between">
+                                    <a href="/blog/edit/<%= post._id %>" class="text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors duration-300" onclick="event.stopPropagation();"> <!-- Prevent card click -->
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form action="/blog/delete/<%= post._id %>" method="POST" onsubmit="event.stopPropagation();"> <!-- Prevent card click -->
+                                        <button type="submit" class="text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors duration-300">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        <% } %>
+                    <% }) %>
+                </div>
+            <% } else { %>
+                <!-- Message for no posts -->
+                <div class="mt-4 flex justify-center items-center">
+                    <p class="else-p text-xl text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                        You haven't posted anything yet.
+                    </p>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="paginationS bg-white shadow-lg p-6 rounded-lg mx-auto">
+            <div class="pagination flex justify-center items-center space-x-4 mt-6">
+                <% if (currentPage > 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 ease-in-out flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3m0 0l6 6m-6-6l6-6" /></svg>
+                        Previous
+                    </a>
+                <% } %>
+    
+                <span class="label font-semibold text-lg text-gray-800">Page <%= currentPage %> of <%= totalPages %></span>
+    
+                <% if (currentPage < totalPages) { %>
+                <a href="?page=<%= currentPage + 1 %>" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition duration-300 ease-in-out flex items-center">
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h12m0 0l-6 6m6-6l-6-6" /></svg>
+                </a>
+            <% } %>
+        </div>
+    </div>    
+
+    <%- include('partials/footer') %>
+</body>
+
+</html>

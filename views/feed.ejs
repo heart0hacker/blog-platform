@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Feed</title>
+    <link rel="stylesheet" href="css/output.css">
+</head>
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto px-4 py-6">
+        <h1 class="following-heading text-4xl font-bold text-center mb-8 text-gray-900 dark:text-gray-100">Following Users' Posts</h1>
+
+        <!-- Check if there are posts -->
+        <% if (posts.length > 0) { %>
+            <!-- Grid to display posts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <% posts.forEach(post => { %>
+                    <div class="post bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                        <!-- Make the entire blog clickable -->
+                        <a href="/blog/<%= post._id %>" class="block mb-6">
+                            <!-- Blog Title and Author -->
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-purple-600 transition-colors duration-300">
+                                    <%= post.title %>
+                                </h2>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-gray-400 dark:text-gray-300 group-hover:text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 3a2 2 0 110 4 2 2 0 010-4zm0 14c-2.33 0-4.31-1.46-5.12-3.5.03-.02.1-.03.16-.03h1.46c.22 0 .43.1.56.27.5.65 1.24 1.23 2.19 1.23.94 0 1.7-.58 2.19-1.23.13-.17.34-.27.56-.27h1.46c.06 0 .12.01.16.03C16.31 17.54 14.33 19 12 19z" />
+                                    </svg>
+                                    <%= post.author.username %>
+                                </p>
+                            </div>
+
+                            <!-- Blog Excerpt -->
+                            <p class="text-gray-700 dark:text-gray-300 mb-4 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-300">
+                                <%= post.content.substring(0, 100) %>...
+                            </p>
+
+                            <!-- Media Display (Images/Videos) -->
+                            <% if (post.media) { %>
+                                <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                                    <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110">
+                                <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                                    <video class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110" controls>
+                                        <source src="/uploads/<%= post.media %>" type="video/mp4">
+                                    </video>
+                                <% } else { %>
+                                    <p class="text-red-500">Unsupported media format</p>
+                                <% } %>
+                            <% } %>
+                        </a>
+
+                        <!-- Edit/Delete for Post Owner -->
+                        <% if (post.author._id.toString() === currentUser._id.toString()) { %>
+                        <div class="mt-4 flex justify-between">
+                            <a href="/blog/edit/<%= post._id %>" class="text-blue-500 dark:text-blue-400 hover:text-blue-600 transition-colors duration-300">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <form action="/blog/delete/<%= post._id %>" method="POST">
+                                <button type="submit" class="text-red-500 dark:text-red-400 hover:text-red-600 transition-colors duration-300">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                        <% } %>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <!-- Message for no posts -->
+            <div class="mt-4 flex justify-center items-center">
+                <p class="else-p text-xl text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                    None of the users you follow have posted anything yet.
+                </p>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>

@@ -1,0 +1,1185 @@
+//models:
+
+//blogpost.js:
+const mongoose = require('mongoose');
+
+const BlogPostSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true,
+    },
+    content: {
+        type: String,
+        requried: true
+    },
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    media: {
+        type: String
+    },
+    comments: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Comment',
+        date: Date
+    }],
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    likes: {
+        type: Number,
+        default: 0
+    },
+    likedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
+}, {timestamps: true});
+
+const BlogPost = mongoose.model('BlogPost', BlogPostSchema);
+module.exports = BlogPost;
+
+//comment.js:
+const mongoose = require('mongoose');
+
+const commentSchema = new mongoose.Schema({
+    text: {
+        type: String,
+        required: true,
+    },
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+    }, 
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
+module.exports = Comment;
+
+//User.js:
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+    username: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    password: {
+        type: String,
+        required: true
+    },
+    role: {
+        type: String,
+        default: 'user'
+    }
+});
+
+const User = mongoose.model('User', userSchema);
+module.exports = User;
+
+//routes
+
+//auth.js:
+const express = require('express');
+const passport = require('passport');
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+
+const router = express.Router();
+
+// Register:
+router.get('/register', (req, res)=>{
+    res.render('register')
+});
+
+router.post('/register', async(req, res)=>{
+    const {username, email, password} = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPassword
+        });
+        await newUser.save();
+        res.redirect('/login');
+    } catch (error) {
+        console.error(error);
+        res.redirect('/register');
+    }
+});
+
+// Login:
+router.get('/login', (req, res)=>{
+    res.render('login')
+});
+
+router.post('/login', passport.authenticate('local', {
+    successRedirect: '/dashboard',
+    failureRedirect: '/login',
+    failureFlash: true
+}));
+
+// Logout:
+router.get('/logout', (req, res)=>{
+    req.logout((err)=>{
+        if(err) {
+            return next(err)
+        }
+        res.redirect('/login');
+    });
+});
+
+module.exports = router;
+
+//blogs.js:
+const express = require('express');
+const BlogPost = require('../models/blogpost');
+const Comment = require('../models/comment');
+const multer = require('multer');
+const path = require('path');
+
+const router = express.Router();
+
+// Home page:
+router.get('/', async (req, res)=>{
+    try {
+        const posts = await BlogPost.find().populate('author', 'username');
+        res.render('home', {posts, user: req.user});
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Unable to fetch posts.')
+        res.redirect('/')
+    }
+});
+
+// Configure Multer Storage:
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + Date.now() + ext);
+    }
+});
+
+// Validate the file type
+const fileFilter = (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif|mp4|mkv|avi/;  // allowed file types
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());  // check extension
+    const mimetype = filetypes.test(file.mimetype);  // check mimetype
+
+    if (mimetype && extname) {
+        return cb(null, true);  // file is valid
+    } else {
+        cb(new Error('File type not supported'));  // file is invalid
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 } // limit file size to 10MB
+});
+
+// Create a new BlogPost (GET):
+router.get('/blog/create', (req, res)=> {
+    if (req.isAuthenticated()) { 
+        res.render('create', {user: req.user});
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// Create a new BlogPost (POST with Image):
+router.post('/blog/create', upload.single('media'), (async(req, res)=>{
+    const {title, content} = req.body;
+    if (req.isAuthenticated()) {
+        try {
+            const newPost = new BlogPost({
+                title,
+                content,
+                author: req.user._id,
+                media: req.file ? req.file.filename : null
+            });
+            await newPost.save();
+            res.redirect('/dashboard');
+        } catch (error) {
+            console.error(error);
+            res.redirect('/blog/create');
+        }
+    } else {
+        res.redirect('/login');
+    }
+}));
+
+// Route to display blog posts:
+router.get('/blog', async (req, res)=>{
+    try {
+        const post = await BlogPost.find().populate('author', 'username'); // Populate author information
+        res.render('blog', {post, user: req.user}); 
+    } catch (error) {
+        console.error(error);
+        res.redirect('/');
+    }
+});
+
+// Route to display a specific blog post:
+router.get('/blog/:id', async (req, res) => {
+    try {
+        const post = await BlogPost.findById(req.params.id)
+        .populate('author', 'username')
+        .populate({
+            path: 'comments',
+            populate: {
+                path: 'author',
+                select: 'username',
+            }
+        }) 
+        .exec();
+        if (!post) {
+            req.flash('error_msg', 'Post not found.');
+            return res.redirect('/');
+        }
+        res.render('blog', { post, user: req.user });
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Error loading post.');
+        res.redirect('/');
+    }
+});
+
+// Route to edit a blog post (GET):
+router.get('/blog/edit/:id', async (req, res)=>{
+    if (req.isAuthenticated()) {
+        try {
+            const post = await BlogPost.findById(req.params.id);
+            if (post.author.toString() === req.user._id.toString()) {  // Check if the logged-in user is the author
+                res.render('editPost', {post});
+            } else {
+                res.redirect('/blog');
+            }
+        } catch (error) {
+            console.error(error);
+            res.redirect('/blog');
+        }
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// Route to edit a blog post (POST):
+router.post('/blog/edit/:id', async (req, res)=>{
+    const {title, content} = req.body;
+    try {
+        await BlogPost.findByIdAndUpdate(req.params.id, {title, content});
+        res.redirect(`/blog/${req.params.id}`);
+    } catch (error) {
+        console.error(error);
+        res.redirect('/blog');
+    }
+});
+
+// Route to delete a blog post:
+router.post('/blog/delete/:id', async (req, res) => {
+    if (req.isAuthenticated()) {
+        try {
+            const post = await BlogPost.findById(req.params.id);
+            if (!post) {
+                req.flash('error_msg', 'Post not found.');
+                return res.redirect('/dashboard');
+            }
+
+            if (post.author.toString() === req.user._id.toString()) {
+                await BlogPost.findByIdAndDelete(req.params.id);
+                req.flash('success_msg', 'Post deleted successfully.');
+                res.redirect('/dashboard');
+            } else {
+                req.flash('error_msg', 'You are not authorized to delete this post.');
+                res.redirect('/blog');
+            }
+        } catch (error) {
+            console.error(error);
+            req.flash('error_msg', 'Error deleting post.');
+            res.redirect('/blog');
+        }
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// Route to Like a post:
+router.post('/blog/:postId/like', async (req, res) => {
+    const { postId } = req.params;
+    try {
+        const post = await BlogPost.findById(postId);
+        if (!post) {
+            req.flash('error_msg', 'Post not found.');
+            return res.redirect('/');
+        }
+
+        if (!post.likedBy) {
+            post.likedBy = [];
+        }
+
+        if (post.likedBy.includes(req.user._id)) {
+            req.flash('error_msg', 'You have already liked this post.');
+            return res.redirect(`/blog/${postId}`);
+        }
+
+        post.likes += 1;
+        post.likedBy.push(req.user._id);
+        await post.save();
+
+        req.flash('success_msg', 'Post liked successfully.');
+        res.redirect(`/blog/${postId}`);
+    } catch (error) { 
+        console.error(error);
+        req.flash('error_msg', 'Error liking post.');
+        res.redirect('/');
+    }
+});
+
+// Route to unlike a post:
+router.post('/blog/:postId/unlike', async (req, res) => {
+    const { postId } = req.params;
+    try {
+        const post = await BlogPost.findById(postId);
+        if (!post) {
+            req.flash('error_msg', 'Post not found.');
+            return res.redirect('/');
+        }
+
+        if (!post.likedBy) {
+            post.likedBy = [];
+        }
+
+        const likedIndex = post.likedBy.indexOf(req.user._id);
+        if (likedIndex === -1) {
+            req.flash('error_msg', 'You have not liked this post.');
+            return res.redirect(`/blog/${postId}`);
+        }
+
+        post.likes -= 1;
+        post.likedBy.splice(likedIndex, 1);
+        await post.save();
+
+        req.flash('success_msg', 'Post unliked successfully.');
+        res.redirect(`/blog/${postId}`);
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Error unliking post.');
+        res.redirect('/');
+    }
+});
+
+// Route to add a comment:
+router.post('/blog/:id/comment', async (req, res) => {
+    const { text } = req.body;
+    if (req.isAuthenticated()) {
+        if (!text) {
+            req.flash('error_msg', 'Comment text is required.');
+            return res.redirect(`/blog/${req.params.id}`);
+        }
+
+        try {
+            const post = await BlogPost.findById(req.params.id);
+            console.log(post);  // Check the retrieved post
+
+            if (!post) {
+                req.flash('error_msg', 'Post not found.');
+                return res.redirect('/');
+            }
+
+            const newComment = new Comment({
+                text,
+                author: req.user._id,
+                createdAt: new Date(),
+            });
+
+            await newComment.save();
+
+            if (!post.comments) {
+                post.comments = [];
+            }
+            post.comments.push(newComment._id);
+            await post.save();
+
+            res.redirect(`/blog/${req.params.id}`);
+        } catch (error) {
+            console.error(error);
+            req.flash('error_msg', 'Error adding comment.');
+            res.redirect(`/blog/${req.params.id}`);
+        }
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// Route to delete a comment:
+router.delete('/blog/:postId/comment/:commentId', async(req, res)=>{
+    const {postId, commentId} = req.params;
+    try {
+        const post = await BlogPost.findById(postId);
+        if (!post) {
+            req.flash('error_msg', 'Post not found.');
+            return res.redirect('/');
+        }
+        
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
+            req.flash('error_msg', 'Comment not found.');
+            return res.redirect(`/blog/${postId}`);
+        }
+
+        if (comment.author.toString() !== req.user._id.toString()) {
+            req.flash('error_msg', 'You are not authorized to delete this comment.');
+            res.redirect(`/blog/${postId}`)
+        }
+        post.comments.pull(commentId);
+        await post.save();
+
+        await Comment.findByIdAndDelete(commentId);
+        req.flash('success_msg', 'Comment deleted successfully.');
+        res.redirect(`/blog/${postId}`);
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Error deleting comment.');
+        res.redirect(`/blog/${postId}`);
+    }
+});
+
+// Route to edit comment:
+router.get('/blog/:postId/comment/:commentId/edit', async(req, res)=>{
+    const {postId, commentId} = req.params;
+    try {
+        const post = await BlogPost.findById(postId);
+        const comment = await Comment.findById(commentId);
+        if (!post || !comment) {
+            req.flash('error_msg', 'Post or comment not found.');
+            return res.redirect(`/blog/${postId}`)
+        }
+
+        if (comment.author._id.toString() !== req.user._id.toString()) {
+            req.flash('error_msg', 'You are not authorized to edit this comment.');
+            res.redirect(`/blog/${postId}`);
+        }
+
+        res.render('editComment', {post, comment, user: req.user});
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Error loading comment edit page.');
+        res.redirect(`/blog/${postId}`);
+    }
+});
+
+router.put('/blog/:postId/comment/:commentId', async (req, res) => {
+    const {postId, commentId} = req.params;
+    const {text} = req.body;
+    try {
+        const comment = await Comment.findById(commentId);
+        if (!comment) {
+            req.flash('error_msg', 'Comment not found');
+            res.redirect(`/blog/${postId}`);
+        }
+
+        if (comment.author._id.toString() !== req.user._id.toString()) {
+            req.flash('error_msg', 'You are not authorized to edit this comment.');
+            return res.redirect(`/blog/${postId}`);
+        }
+
+        comment.text = text;
+        await comment.save();
+        req.flash('success_msg', 'Comment updated successfully.');
+        res.redirect(`/blog/${postId}`);
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Error updating comment.');
+        res.redirect(`/blog/${postId}`);
+    }
+});
+
+module.exports = router;
+
+//dashboard.js:
+const express = require('express');
+const BlogPost = require('../models/blogpost');
+const router = express.Router();
+
+// Middleware to ensure user is logged in
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next()
+    }
+    req.flash('error_msg', 'Please log in to view your dashboard');
+    res.redirect('/login');
+};
+
+// Dashboard route to show user-specific blogs
+router.get('/dashboard', ensureAuthenticated, async (req, res) => {
+    try {
+        const posts = await BlogPost.find({author: req.user._id}).populate('author');
+        res.render('dashboard', { posts, user: req.user });
+    } catch (error) {
+        console.error(error);
+        req.flash('error_msg', 'Unable to load dashboard.');
+        res.redirect('/');
+    }
+});
+module.exports = router;
+
+//app.js:
+const express = require('express');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const flash = require('connect-flash');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const path = require('path');
+const User = require('./models/User');
+const bcrypt = require('bcryptjs');
+const dotenv = require('dotenv');
+const methodOverride = require('method-override');
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB with options for better error handling
+mongoose.connect(process.env.MONGODB_URI)
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error('MongoDB connection error:', err));
+mongoose.set('strictPopulate', false);
+
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
+app.use((req, res, next) => {
+    res.locals.currentRoute = req.path;
+    next()
+});
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'SecretKey',
+    resave: false,
+    saveUninitialized: true
+}));
+
+// Passport configuration
+passport.use(new LocalStrategy({
+    usernameField: 'email',
+    passwordField: 'password'
+}, async (email, password, done) => {
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return done(null, false, { message: 'User not found' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return done(null, false, { message: 'Invalid password' });
+        }
+        return done(null, user);
+    } catch (error) {
+        return done(error);
+    }
+}));
+
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (error) {
+        done(error);
+    }
+});
+
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Middleware to pass user data to all views
+app.use((req, res, next) => {
+    res.locals.user = req.user || null; // Make user available in all views
+    res.locals.error_msg = req.flash('error_msg'); // Flash messages
+    res.locals.success_msg = req.flash('success_msg'); // Flash messages
+    next();
+});
+
+// View engine
+app.set('view engine', 'ejs');
+
+// Define routes
+app.use(methodOverride('_method'));
+app.use('/', require('./routes/auth'));
+app.use('/', require('./routes/blog'));
+app.use('/', require('./routes/dashboard'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Error handling middleware 
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log(`App running at http://localhost:${PORT}/`);
+});
+
+//.env :
+MONGODB_URI = mongodb://localhost:27017/REALBLOG
+
+//views
+//register.ejs:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container px-5 border-gray-700 w-96 h-96 mx-auto mt-6">
+        <h1 class="text-2xl font-bold">Register</h1>
+        <form action="/register" method="POST" class="mt-4">
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" name="username" id="username" class="block w-full p-2 border border-gray-300 rounded" required>
+            </div>
+            <div class="mb-4">
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" id="email" class="block w-full p-2 border border-gray-300 rounded" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" name="password" id="password" class="block w-full p-2 border border-gray-300 rounded" required>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white p-2 rounded">Register</button>
+        </form>
+        <p>Already have an account? <a href="/login" class="text-blue-500">Login here</a></p>
+    </div>
+</body>
+</html>
+
+//login.ejs:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mx-auto mt-6 h-96 w-96">
+        <h1 class="text-2xl font-bold">Login</h1>
+        <form action="/login" method="POST" class="mt-4">
+            <div class="mb-4">
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" id="email" class="block w-full p-2 border border-gray-300 rounded" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" name="password" id="password" class="block w-full p-2 border border-gray-300 rounded" required>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white p-2 rounded">Login</button>
+        </form>
+        <p>Don't have an account? <a href="/register" class="text-blue-500">Register here</a></p>
+    </div>
+</body>
+</html>
+
+//home.ejs:
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Blog Platform</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="body bg-gradient-to-r from-blue-100 to-indigo-100 text-gray-900">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <div class="blogContainer h-[80vh] rounded-xl shadow-2xl p-10 bg-gradient-to-r from-white to-gray-50">
+            <!-- Enhanced Heading with gradient and glow -->
+            <h1 class="text-6xl font-extrabold text-center mb-5 pb-5 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-500 drop-shadow-lg">
+                All Blog Posts
+            </h1>
+
+            <!-- Blog Grid with subtle hover effects and smooth transitions -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <% posts.forEach(post => { %>
+                    <!-- Clickable Blog Card with soft shadow and glow -->
+                    <a href="/blog/<%= post._id %>" class="group block relative transition-transform duration-500 hover:scale-105">
+                        <div class="post p-6 bg-white border border-gray-200 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 hover:bg-gradient-to-r from-indigo-50 to-blue-50">
+                            
+                            <!-- Title and Author with SVG icon -->
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors duration-300"><%= post.title %></h2>
+                                <p class="text-sm text-gray-500 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.1 0 2 .9 2 2s-.9 2-2-2-.9-2 2-2zm0 14c-2.33 0-4.31-1.46-5.12-3.5.03-.02.1-.03.16-.03H8.5c.22 0 .43.1.56.27.5.65 1.24 1.23 2.19 1.23.94 0 1.7-.58 2.19-1.23.13-.17.34-.27.56-.27h1.46c.06 0 .12.01.16.03C16.31 17.54 14.33 19 12 19zm4.82-5H16.5c-.22 0-.43-.1-.56-.27-.5-.65-1.24-1.23-2.19-1.23-.94 0-1.7.58-2.19 1.23-.13.17-.34.27-.56.27H8.72c-.06 0-.13-.01-.16-.03C7.69 13.46 9.67 12 12 12s4.31 1.46 5.12 3.5c-.03.02-.1.03-.16.03z"/>
+                                    </svg>
+                                    <%= post.author.username %>
+                                </p>
+                            </div>
+            
+                            <!-- Content excerpt -->
+                            <p class="text-gray-700 mb-6 group-hover:text-gray-900 transition-colors duration-300"><%= post.content.substring(0, 100) %>...</p>
+            
+                            <!-- Media display -->
+                            <% if (post.media) { %>
+                                <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                                    <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-105">
+                                <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                                    <video class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-105" controls preload="metadata">
+                                        <source src="/uploads/<%= post.media %>" type="video/mp4">
+                                    </video>
+                                <% } else { %>
+                                    <p class="text-red-500 mb-2">Unsupported media format</p>
+                                <% } %>
+                            <% } %>
+                        </div>
+                    </a>
+                <% }) %>
+        </div>
+    </div>
+
+    <%- include('partials/footer') %>
+</body>
+
+</html>
+//editPost.ejs:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Post: <%= post.title %></title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto my-10">
+        <h2 class="text-3xl font-bold mb-6 text-center">Edit Post</h2>
+        
+        <form action="/blog/edit/<%= post._id %>" method="POST" class="form max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
+            <div class="mb-4">
+                <label for="title" class="block text-lg font-medium mb-2">Post Title</label>
+                <input type="text" name="title" id="title" value="<%= post.title %>" required class="input w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+    
+            <div class="mb-4">
+                <label for="content" class="block text-lg font-medium mb-2">Content</label>
+                <textarea name="content" id="content" rows="6" required class="input w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"><%= post.content %></textarea>
+            </div>
+    
+            <div class="flex justify-center">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Update Post</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
+
+//editComment.ejs:
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Comment</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Edit Comment</h1>
+        <div class="edit-comment-formContainer bg-white shadow-lg rounded-lg p-6 max-w-lg mx-auto">
+            <form action="/blog/<%= post._id %>/comment/<%= comment._id %>?_method=PUT" method="POST">
+                <div class="mb-6">
+                    <label for="text" class="block text-lg font-semibold mb-2">Comment:</label>
+                    <textarea name="text" id="text" rows="5" class="input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition duration-200" required><%= comment.text %></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-600 transition duration-200">
+                    Update Comment
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
+
+//dashboard.ejs:
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= user ? user.username : 'Dashboard' %> Dashboard</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="bg-gradient-to-r from-indigo-50 to-blue-50 text-gray-900">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-10">
+        <!-- Dashboard Title -->
+        <h1 class="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-600 drop-shadow-lg">
+            Welcome to Your Dashboard, <%= user.username %>!
+        </h1>
+
+        <!-- Create New Post Button with SVG and shadow effect -->
+        <div class="text-center mb-10">
+            <a href="/blog/create" class="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition duration-300 transform hover:scale-105 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create New Post
+            </a>
+        </div>
+
+        <!-- Your Blogs Section -->
+        <div class="blogContainer mx-2">
+            <h2 class="text-2xl font-bold mb-6 text-center">Your Blogs:</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <% posts.forEach(post => { %>
+                    <div class="post ml-4 group bg-white border border-gray-200 p-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                        <!-- Make the entire blog clickable -->
+                        <a href="/blog/<%= post._id %>" class="block mb-6">
+                            <!-- Blog Content -->
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-2xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors duration-300"><%= post.title %></h2>
+                                <p class="text-sm text-gray-500 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.1 0 2 .9 2 2s-.9 2-2-2-.9-2 2-2zm0 14c-2.33 0-4.31-1.46-5.12-3.5.03-.02.1-.03.16-.03H8.5c.22 0 .43.1.56.27.5.65 1.24 1.23 2.19 1.23.94 0 1.7-.58 2.19-1.23.13-.17.34-.27.56-.27h1.46c.06 0 .12.01.16.03C16.31 17.54 14.33 19 12 19z"/>
+                                    </svg>
+                                    <%= post.author.username %>
+                                </p>
+                            </div>
+
+                            <p class="text-gray-700 mb-4 group-hover:text-gray-900 transition-colors duration-300">
+                                <%= post.content.substring(0, 100) %>...
+                            </p>
+
+                            <!-- Media Display -->
+                            <% if (post.media) { %>
+                                <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                                    <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110">
+                                <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                                    <video class="w-full h-48 object-cover rounded-lg shadow-md transition-transform duration-500 hover:scale-110" controls preload="metadata">
+                                        <source src="/uploads/<%= post.media %>" type="video/mp4">
+                                    </video>
+                                <% } else { %>
+                                    <p class="text-red-500 mb-2">Unsupported media format</p>
+                                <% } %>
+                            <% } %>
+                        </a>
+
+                        <!-- Edit and Delete buttons -->
+                        <div class="mt-6 flex justify-between">
+                            <a href="/blog/edit/<%= post._id %>" class="text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors duration-300" onclick="event.stopPropagation();"> <!-- Prevent card click -->
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <form action="/blog/delete/<%= post._id %>" method="POST" onsubmit="event.stopPropagation();"> <!-- Prevent card click -->
+                                <button type="submit" class="text-red-500 hover:text-red-600 flex items-center gap-1 transition-colors duration-300">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+
+//create.ejs:
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Post</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-8">
+        <h1 class="text-4xl font-bold text-center mb-6">Create New Post</h1>
+        <form action="/blog/create" method="POST" enctype="multipart/form-data" class="form bg-white shadow-lg rounded-lg p-6">
+            <div class="mb-6">
+                <label for="title" class="block text-lg font-bold mb-2">Title:</label>
+                <input type="text" name="title" id="title" class="input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition duration-200" required>
+            </div>
+
+            <div class="mb-6">
+                <label for="content" class="block text-lg font-bold mb-2">Content:</label>
+                <textarea name="content" id="content" rows="6" class="input w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition duration-200" required></textarea>
+            </div>
+
+            <div class="mb-6">
+                <label for="media" class="block text-lg font-bold mb-2">Upload Media:</label>
+                <input type="file" name="media" id="media" class="input w-full border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition duration-200">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-600 transition duration-200">Create Post</button>
+        </form>
+    </div>
+
+</body>
+</html>
+
+//blog.ejs:
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= post.title %> - All Blogs</title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto py-6 bg-white shadow-lg rounded-lg">
+        <h1 class="post-heading text-4xl font-bold mb-2 text-gray-800"><%= post.title %></h1>
+        <p class="text-gray-600">By <%= post.author ? post.author.username : 'Unknown Author' %></p>
+        
+        <p class="text-lg text-gray-700 mb-4"><%= post.content %></p>
+
+        <!-- Media display handling -->
+        <% if (post.media) { %>
+            <% if (post.media.endsWith('.png') || post.media.endsWith('.jpg') || post.media.endsWith('.jpeg') || post.media.endsWith('.gif')) { %>
+                <img src="/uploads/<%= post.media %>" alt="Post Image" class="w-full h-96 object-cover mb-4 rounded-lg shadow">
+            <% } else if (post.media.endsWith('.mp4') || post.media.endsWith('.avi')) { %>
+                <video class="w-full h-96 object-cover mb-4 rounded-lg shadow" controls>
+                    <source src="/uploads/<%= post.media %>" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            <% } else { %>
+                <p class="text-red-500">Unsupported media format</p>
+            <% } %>
+        <% } %>
+        
+        <div class="flex items-center mb-4">
+            <% if (user) { %>
+                <% if (post.likedBy && post.likedBy.includes(user._id)) { %>
+                    <form action="/blog/<%= post._id %>/unlike" method="POST" class="flex items-center">
+                        <button type="submit" class="flex items-center bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span class="ml-2">Liked</span>
+                        </button>
+                    </form>
+                <% } else { %>
+                    <form action="/blog/<%= post._id %>/like" method="POST" class="flex items-center">
+                        <button type="submit" class="flex items-center bg-green-500 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span class="ml-2">Like</span>
+                        </button>
+                    </form>
+                <% } %>
+            <% } else { %>
+                <p class="text-red-500">You need to <a href="/login" class="underline">login</a> to like this post.</p>
+            <% } %>
+            <span class="ml-4 text-gray-600">Likes: <%= post.likes %></span>
+        </div>
+
+        <div class="post-comments mt-6 ml-5">
+            <h3 class="text-xl mb-4 text-gray-800">Comments</h3>
+        
+            <% if (Array.isArray(post.comments) && post.comments.length > 0) { %>
+                <% post.comments.forEach(comment => { %>
+                    <div class="border-b py-2 mb-2">
+                        <p><strong><%= comment.author.username %></strong> said:</p>
+                        <p class="text-gray-700"><%= comment.text %></p>
+                        <p class="text-gray-500 text-sm"><%= new Date(comment.createdAt).toLocaleString() %></p>
+                        
+                        <% if (user && user._id.toString() === comment.author._id.toString()) { %>
+                            <div class="mt-2">
+                                <form action="/blog/<%= post._id %>/comment/<%= comment._id %>?_method=DELETE" method="POST" class="inline-block">
+                                    <button type="submit" class=".btn text-red-500 hover:underline">Delete</button>
+                                </form>
+                                <a href="/blog/<%= post._id %>/comment/<%= comment._id %>/edit" class="text-blue-500 hover:underline ml-2">Edit</a>
+                            </div>
+                        <% } %>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p class="text-gray-600">No comments yet. Be the first to comment!</p>
+            <% } %>
+        </div>                     
+    
+        <!-- Comment form (only visible to logged-in users) -->
+        <% if (user) { %>
+            <div class="mt-6 ml-5">
+                <h4 class="leave-comment-heading text-lg mb-2 text-gray-800">Leave a Comment:</h4>
+                <form class="mr-8" action="/blog/<%= post._id %>/comment" method="POST">
+                    <textarea name="text" rows="3" class="input border p-2 w-full mb-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="Write your comment here..." required></textarea>
+                    <button type="submit" class=".btn relative left-[88.5%] bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Post Comment</button>
+                </form>
+            </div>
+        <% } else { %>
+            <p class="text-gray-600">You must <a href="/login" class="text-blue-500">login</a> to comment.</p>
+        <% } %>
+        
+    </div>
+</body>
+</html>
+
+//views//partials
+//navbar:
+    <link rel="stylesheet" href="/css/theme.css">
+    <nav class="navbar flex justify-between items-center sticky top-0 z-10 bg-gray-800 text-white px-6 py-4 shadow-md transition-all">
+        <h1 class="logo text-2xl font-bold hover:text-blue-300 cursor-pointer">
+            <a href="/" aria-label="Go to Blog Platform homepage">Blog Platform</a>
+        </h1>
+
+        <!-- Toggle for mobile view -->
+        <div class="block lg:hidden">
+            <button aria-label="Toggle mobile menu" class="mobile-menu-button focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Theme Toggle Button -->
+        <div class="theme-toggle cursor-pointer flex items-center">
+            <svg id="sun" class="w-6 h-6 text-yellow-400 hidden transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M6.636 18.364l-1.414 1.414M18.364 18.364l1.414 1.414M6.636 5.636l-1.414-1.414" />
+            </svg>
+            <svg id="moon" class="w-6 h-6 text-blue-200 transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.752 15.002c.006-.095.01-.189.01-.284 0-4.411-3.588-8-8-8a8.003 8.003 0 00-7.284 11.525c-.237-.006-.467-.025-.706-.025-4.418 0-8 3.582-8 8s3.582 8 8 8h11a8 8 0 008-8c0-3.313-2.079-6.156-4.792-7.158" />
+            </svg>
+        </div>
+
+        <!-- Navbar links -->
+        <ul class="nav-links hidden lg:flex mx-3 items-center space-x-6 text-lg font-medium">
+            <% if (user) { %>
+                <li class="mx-3 cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/dashboard" class="<%= (currentRoute === '/dashboard') ? 'text-blue-300 underline' : '' %>" aria-label="Go to Dashboard">
+                        Dashboard
+                    </a>
+                </li>
+                <li class="mx-3 cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/logout" class="hover:text-red-400" aria-label="Logout">
+                        Logout
+                    </a>
+                </li>
+            <% } else { %>
+                <li class="mx-3 cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/login" class="<%= (currentRoute === '/login') ? 'text-blue-300 underline' : '' %>" aria-label="Login to your account">
+                        Login
+                    </a>
+                </li>
+                <li class="mx-3 cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/register" class="<%= (currentRoute === '/register') ? 'text-blue-300 underline' : '' %>" aria-label="Create a new account">
+                        Register
+                    </a>
+                </li>
+            <% } %>
+        </ul>
+    </nav>
+
+    <!-- Mobile Menu (only visible in small screens) -->
+    <div class="mobile-menu hidden lg:hidden">
+        <ul class="space-y-4 text-lg font-medium">
+            <% if (user) { %>
+                <li class="cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/dashboard" aria-label="Go to Dashboard">Dashboard</a>
+                </li>
+                <li class="cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/logout" aria-label="Logout">Logout</a>
+                </li>
+            <% } else { %>
+                <li class="cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/login" aria-label="Login to your account">Login</a>
+                </li>
+                <li class="cursor-pointer hover:opacity-80 transition-all">
+                    <a href="/register" aria-label="Create a new account">Register</a>
+                </li>
+            <% } %>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Toggle mobile menu visibility
+            const btn = document.querySelector('button.mobile-menu-button');
+            const menu = document.querySelector('.mobile-menu');
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+            });
+            
+            // Theme toggle functionality
+            const themeToggle = document.querySelector('.theme-toggle');
+            const body = document.body;
+
+            // Load saved theme from localStorage
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                body.classList.add('dark-theme');
+                document.getElementById('sun').classList.remove('hidden');
+                document.getElementById('moon').classList.add('hidden');
+            }
+            
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-theme');
+                document.getElementById('sun').classList.toggle('hidden');
+                document.getElementById('moon').classList.toggle('hidden');
+
+                // Save theme to localStorage
+                const currentTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+                localStorage.setItem('theme', currentTheme);
+            });
+        });
+    </script>
+
+//footer:
+<!-- footer.ejs -->
+<footer class="footer mt-20 text-center py-8 bg-gradient-to-r from-white to-gray-300 text-gray-800 shadow-2xl">
+        <p class="text-lg">&copy; 2024 Blog Platform. All Rights Reserved.</p>
+</footer>

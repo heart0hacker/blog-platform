@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Post: <%= post.title %></title>
+    <link href="/css/output.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <%- include('partials/navbar') %>
+
+    <div class="container mx-auto my-10">
+        <h2 class="text-4xl font-bold mb-8 text-center text-blue-600">Edit Post</h2>
+        
+        <form action="/blog/edit/<%= post._id %>" method="POST" class="form max-w-lg mx-auto bg-white p-8 rounded-lg shadow-lg space-y-6 border border-gray-300">
+            <div class="mb-4">
+                <label for="title" class="block text-lg font-semibold mb-2 text-gray-700">Post Title</label>
+                <input type="text" name="title" id="title" value="<%= post.title %>" required class="input w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition duration-300">
+            </div>
+    
+            <div class="mb-4">
+                <label for="content" class="block text-lg font-semibold mb-2 text-gray-700">Content</label>
+                <textarea name="content" id="content" rows="6" required class="input w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition duration-300"><%= post.content %></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label for="category" class="block text-lg font-semibold mb-2 text-gray-700">Category</label>
+                <select name="category" id="category" required class="input w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition duration-300">
+                    <option value="" disabled>Select a category</option>
+                    <option value="comedy">Comedy</option>
+                    <option value="entertainment">Entertainment</option>
+                    <option value="technology">Technology</option>
+                    <option value="health">Health & Fitness</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="travel">Travel</option>
+                    <option value="food">Food & Cooking</option>
+                    <option value="education">Education</option>
+                    <option value="finance">Finance</option>
+                    <option value="fashion">Fashion & Beauty</option>
+                    <option value="sports">Sports</option>
+                    <option value="news">News & Politics</option>
+                    <option value="music">Music</option>
+                    <option value="movies">Movies & TV Shows</option>
+                    <option value="art">Art & Culture</option>
+                    <option value="science">Science & Nature</option>
+                    <option value="gaming">Gaming</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="tags" class="block text-lg font-semibold mb-2 text-gray-700">Tags (comma-separated)</label>
+                <input type="text" name="tags" id="tags" value="<%= post.tags.join(', ') %>" class="input w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition duration-300" placeholder="e.g., Songs, Movie Clip">
+            </div>
+
+            <div class="flex justify-center">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 transform hover:scale-105 shadow-md hover:shadow-lg">Update Post</button>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

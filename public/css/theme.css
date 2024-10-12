@@ -1,0 +1,289 @@
+/* Dark Theme Styles */
+.dark-theme {
+    background-color: #121212; /* Dark background */
+    color: #e0e0e0; /* Light gray text for readability */
+}
+
+.dark-theme body {
+    background: #1e1e2f;
+}
+
+.dark-theme .navbar {
+    background: linear-gradient(to right, #000428, #004e92);
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .logo a {
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.dark-theme .navbar a:hover {
+    color: #f1c40f;
+}
+
+.dark-theme .search {
+    border-color: #4b4b4b;
+    background-color: #2e2e2e;
+    color: #fff;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.dark-theme .search-btn {
+    background-color: #f39c12;
+    color: #fff;
+}
+
+.dark-theme .theme-toggle svg {
+    color: #f1c40f;
+}
+
+.dark-theme .notification-count {
+    background-color: #e74c3c;
+}
+
+.notification-count {
+    animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+/* Responsive fixes for dark mode */
+@media (max-width: 1024px) {
+    .dark-theme .search {
+        display: none;
+    }
+}
+
+/* Mobile Menu */
+.dark-theme .mobile-menu {
+    background-color: #1e1e1e; /* Match mobile menu to navbar */
+}
+
+.mobile-menu {
+    backdrop-filter: blur(10px);
+}
+
+.mobile-menu {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    right: 0;
+    z-index: 50; /* Ensure it overlays other content */
+}
+
+/* Headings */
+.dark-theme .leave-comment-heading,
+.dark-theme .post-heading,
+.dark-theme .profile-heading,
+.dark-theme .following-heading {
+    color: #f0f0f0; /* Use a consistent light color for headings */
+}
+
+/* Containers */
+.dark-theme .container {
+    background: rgb(20, 20, 20);
+}
+
+.dark-theme .else-p {
+    background: rgb(40, 40, 40);
+}
+
+.dark-theme .form {
+    background-color: #1e1e1e; /* Keep it consistent with the navbar */
+}
+
+/* Inputs */
+.dark-theme .input {
+    background-color: #333333; /* Dark input background */
+    color: #ffffff; /* White text for inputs */
+    border: 1px solid #444; /* Subtle border for inputs */
+    padding: 10px; /* Padding for input */
+    border-radius: 5px; /* Rounded corners */
+}
+
+/* Blog Container */
+.dark-theme .blogContainer {
+    background: rgb(28, 28, 28); /* A bit lighter for contrast */
+}
+
+/* Posts */
+.dark-theme .post,
+.dark-theme #post {
+    background-color: rgb(40, 40, 40); /* Darker post background for distinction */
+    border-radius: 8px; /* Rounded corners for posts */
+    transition: background-color 0.3s; /* Smooth transition */
+}
+
+.dark-theme .post,
+.dark-theme #post {
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth transition for scaling and shadow */
+}
+
+/* Scale and shadow on hover */
+.dark-theme .post:hover,
+.dark-theme #post{
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    background-color: rgb(60, 60, 60);
+}
+
+.dark-theme .post:hover .dashboard-content {
+    color: white;
+}
+
+
+/* Edit Comment Form */
+.dark-theme .edit-comment-formContainer {
+    background-color: #1e1e1e;
+}
+
+/* Additional elements */
+.dark-theme h2, 
+.dark-theme h3 {
+    color: #f0f0f0; /* Light headings */
+}
+
+.dark-theme p {
+    color: #b0b0b0; /* Lighter gray for paragraphs */
+}
+
+/* Buttons */
+.dark-theme .btn {
+    background-color: #3a3a3a; /* Darker button background */
+    color: #e0e0e0; /* Light text on buttons */
+    border: none; /* Remove default border */
+    padding: 10px 20px; /* Button padding */
+    cursor: pointer; /* Pointer on hover */
+    transition: background-color 0.3s; /* Smooth transition */
+    border-radius: 5px; /* Rounded corners for buttons */
+}
+
+.dark-theme .btn:hover {
+    background-color: #4a4a4a; /* Lighter on hover */
+}
+
+/* Dark Theme Footer Styles */
+.dark-theme footer {
+    background: linear-gradient(to right, #1e1e1e, #121212); /* Adjust gradient for dark theme */
+    color: #e0e0e0; /* Light gray text for readability */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); /* Subtle shadow for depth */
+}
+
+.dark-theme footer p {
+    color: #f0f0f0; /* Light text color for the footer */
+}
+
+
+/*  */
+
+  /* dark-theme.css */
+  .dark-theme{
+    margin: 0;
+  }
+.dark-theme .blogContainer {
+    background: linear-gradient(to right, #1e293b, #0f172a); /* Dark gradient background for blog container */
+}
+
+.dark-theme h1 {
+    background-image: linear-gradient(to right, #9333ea, #3b82f6); /* Gradient heading color for dark mode */
+    color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); /* Text glow effect in dark mode */
+}
+
+.dark-theme .post {
+    background-color: #334155; /* Dark background for posts */
+    border-color: #475569; /* Softer dark borders */
+    color: #e2e8f0; /* Lighter text color */
+}
+
+.dark-theme .post:hover {
+    background-color: #475569; /* Hover color in dark mode */
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1); /* Subtle hover shadow */
+}
+
+.dark-theme h2 {
+    color: #f1f5f9;
+}
+
+.dark-theme h2.group-hover {
+    color: #c084fc;
+}
+
+.dark-theme  {
+    color: #94a3b8;
+}
+
+.dark-theme .group-hover {
+    color: #cbd5e1;
+}
+
+.dark-theme a:hover {
+    color: #e879f9;
+}
+
+.dark-theme svg {
+    fill: #94a3b8;
+}
+
+.dark-theme svg.group-hover {
+    fill: #a78bfa;
+}
+
+.dark-theme .else-p {
+    background-color: #1e293b; /* Dark background for "no posts" message */
+    color: #f1f5f9; /* Light text color */
+    box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1); /* Subtle shadow */
+}
+
+/* Media Styles */
+.dark-theme img, .dark-theme video {
+    border: 2px solid #64748b;
+}
+
+#imageModal img {
+    max-width: 90%; /* Limits the max width of the image */
+    max-height: 90%; /* Limits the max height of the image */
+}
+
+
+/* Navbar in Dark Mode */
+.dark-theme .navbar {
+    background-color: #0f172a;
+    color: #f1f5f9;
+}
+
+.dark-theme .navbar a {
+    color: #cbd5e1; /* Lighter color for navbar links */
+}
+
+.dark-theme .navbar a:hover {
+    color: #e879f9; /* Accent color on hover */
+}
+
+/* Footer in Dark Mode */
+.dark-theme footer {
+    background-color: #0f172a; /* Dark footer background */
+    color: #f1f5f9; /* Light footer text */
+}
+
+.dark-theme footer a {
+    color: #cbd5e1; /* Footer links */
+}
+
+.dark-theme footer a:hover {
+    color: #e879f9; /* Footer link hover color */
+}
+
+.dark-theme .paginationS{
+    border-radius: 0;
+    background-color: #1e1e1e;
+}

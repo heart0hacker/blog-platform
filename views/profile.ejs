@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/output.css">
+    <title>
+        <%= user.username %>'s Profile
+    </title>
+</head>
+
+<body class="bg-gray-100">
+
+    <%- include('partials/navbar') %>
+
+        <div class="container mx-auto py-6 bg-white shadow-lg rounded-lg">
+            <div class="flex flex-col items-center">
+
+                <!-- Display profile picture -->
+                <% if (user.profilePicture) { %>
+                    <img class="w-48 h-48 rounded-full object-cover mb-4 shadow" src="/<%= user.profilePicture %>"
+                        alt="Profile Picture">
+                    <% } else { %>
+                        <img class="w-48 h-48 rounded-full object-cover mb-4 shadow" src="/uploads/images/default-avatar.png"
+                            alt="default-avatar">
+                        <% } %>
+
+                            <h1 class="profile-heading text-4xl font-bold mb-4 text-gray-800">
+                                <%= user.username %>'s Profile
+                            </h1>
+
+                            <div class="follow">
+
+                                <p>Followers: <%= user.followers.length %>
+                                </p>
+                                <p>Following: <%= user.following.length %>
+                                </p>
+
+                                <% if (!currentUser.following.includes(user._id)) { %>
+                                    <form action="/follow/<%= user._id %>" method="POST">
+                                        <button type="submit">Follow</button>
+                                    </form>
+                                    <% } else { %>
+                                        <form action="/unfollow/<%= user._id %>" method="POST">
+                                            <button type="submit">Unfollow</button>
+                                        </form>
+                                        <% } %>
+                            </div>
+
+                            <p><strong>Bio:</strong>
+                                <%= user.bio || 'No bio provided' %>
+                            </p>
+
+                            <h3>Social Media Links:</h3>
+                            <ul>
+                                <% if (user.socialLinks.facebook) { %>
+                                    <li><a href="<%= user.socialLinks.facebook %>" target="_blank">Facebook</a></li>
+                                    <% } %>
+
+                                        <% if (user.socialLinks.twitter) { %>
+                                            <li><a href="<%= user.socialLinks.twitter %>" target="_blank">Twitter</a>
+                                            </li>
+                                            <% } %>
+
+                                                <% if (user.socialLinks.instagram) { %>
+                                                    <li><a href="<%= user.socialLinks.instagram %>"
+                                                            target="_blank">Instagram</a></li>
+                                                    <% } %>
+
+                                                        <% if (user.socialLinks.linkedin) { %>
+                                                            <li><a href="<%= user.socialLinks.linkedin %>"
+                                                                    target="_blank">Linkedin</a></li>
+                                                            <% } %>
+                            </ul>
+                            <p class="text-xl text-gray-700 mb-2">Email: <span class="text-blue-500">
+                                    <%= user.email %>
+                                </span></p>
+                            <p class="text-lg text-gray-600 mb-6">Member Since: <span class="text-blue-500">
+                                    <%= new Date(user.createdAt).toLocaleDateString() %>
+                                </span></p>
+
+                            <!-- Profile update button (visible only to logged-in user viewing their own profile) -->
+                            <% if (user && user._id.toString()===currentUser._id.toString()) { %>
+                                <a href="/profile/edit"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Update
+                                    Profile</a>
+                                <% } %>
+            </div>
+        </div>
+</body>
+
+</html>

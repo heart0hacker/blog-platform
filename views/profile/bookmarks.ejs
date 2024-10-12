@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmarks</title>
+    <link href="/css/output.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Include jQuery -->
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <%- include('../partials/navbar') %>
+
+    <div class="container mx-auto px-4 py-10">
+        <div class="search-bar mb-6">
+            <form action="/bookmarks/search" method="get" class="flex items-center">
+                <input type="text" name="query" placeholder="Search your bookmarks..." class="border border-gray-300 p-3 w-full rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-3 rounded-r-lg shadow-lg hover:bg-blue-600 transition duration-300">Search</button>
+            </form>
+        </div>
+
+        <h1 class="text-6xl font-extrabold mb-6 text-center pb-5 bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-400 animate-gradient-slow drop-shadow-lg">
+            Your Bookmarked Posts
+        </h1>
+
+        <% if (bookmarks.length > 0) { %>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <% bookmarks.forEach((post) => { %>
+                    <div class="group block relative transition-transform duration-500 hover:scale-105">
+                        <div class="post p-6 bg-white border border-gray-200 rounded-lg shadow-lg hover:shadow-2xl transition-shadow duration-300 hover:bg-gradient-to-r from-indigo-50 to-blue-50">
+                            <h2 class="text-2xl font-bold mb-4 group-hover:text-indigo-500 transition-colors duration-300 group-hover:underline hover:tracking-wide cursor-pointer" 
+                                onclick="window.location.href='/blog/<%= post._id %>'">
+                                <%= post.title %>
+                            </h2>
+                            <p class="text-gray-700 mb-6 group-hover:text-gray-900 transition-colors duration-300 group-hover:scale-105">
+                                <%= post.content.substring(0, 150) %>...
+                            </p>
+                            
+                            <!-- Unbookmark Button -->
+                            <% if (user) { %>
+                                <button class="text-sm px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition duration-300 unbookmark-button" 
+                                        data-id="<%= post._id %>">
+                                    Unbookmark
+                                </button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="mt-4 flex justify-center items-center">
+                <p class="text-xl text-gray-600 bg-white p-4 rounded-lg shadow-md animate-pulse text-center">
+                    You haven't bookmarked any posts yet.
+                </p>
+            </div>
+        <% } %>
+    </div>
+
+    <%- include('../partials/footer') %>
+
+    <script>
+        $(document).on('click', '.unbookmark-button', function(e) {
+            e.preventDefault();
+            const postId = $(this).data('id');
+            const $button = $(this);
+            
+            $.ajax({
+                url: `/bookmark/${postId}`, 
+                type: 'DELETE',
+                data: { id: postId },
+                success: function(response) {
+                    $button.closest('.group').remove();
+                    // Check if there are no bookmarks left, show a message
+                    if ($('.grid > .group').length === 0) {
+                        $('.container').html('<p class="text-xl text-gray-600 bg-white p-4 rounded-lg shadow-md animate-pulse text-center">You haven\'t bookmarked any posts yet.</p>');
+                    }
+                },
+                error: function(err) {
+                    console.error('Error removing bookmark:', err);
+                    alert('Failed to unbookmark the post. Please try again.'); // Friendly alert for error
+                }
+            });
+        });
+    </script>    
+</body>
+</html>
